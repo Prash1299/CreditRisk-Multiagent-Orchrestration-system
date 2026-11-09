@@ -1,9 +1,6 @@
 # Consumer Credit Policy
 
-Apply to retail consumer lending.
-
-- Minimum credit score: 620
-- Maximum DTI: 0.43
-- Maximum LTV for secured products: 0.90
-- Prior defaults: refer if 1, decline if 2 or more unless cured for 24 months
-- Unsecured personal loans: cap at 25% of annual income
+- Document income stability (salary credits, Form 16 / ITR as applicable)
+- FOIR is the primary repayment-capacity ratio for unsecured loans
+- Prior defaults: refer if 1, treat as high risk if 2+
+- Unsecured personal loans: keep EMI surplus visibly positive after proposed EMI

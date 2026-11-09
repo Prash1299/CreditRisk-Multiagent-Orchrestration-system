@@ -14,7 +14,6 @@ def build_graph() -> StateGraph:
     graph.add_node("research", research_node)
     graph.add_node("analyst", analyst_node)
     graph.add_node("reviewer", reviewer_node)
-
     graph.add_edge(START, "supervisor")
     graph.add_conditional_edges(
         "supervisor",

@@ -1,9 +1,5 @@
-# Small Business Credit Policy
+# Small Business Overlay
 
-Apply to SME and working-capital facilities.
-
-- Minimum owner credit score: 660
-- Maximum DTI including proposed facility: 0.50
-- Construction exposures require collateral coverage LTV <= 0.75
-- Retail SMEs: inventory is not primary collateral
-- Refer any exposure above $100,000 to credit committee
+- Working-capital and SME products require bank-statement analysis
+- Inventory is not primary collateral
+- Refer exposures that fail FOIR even if bureau score is strong

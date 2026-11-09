@@ -1,28 +1,17 @@
-import json
-from pathlib import Path
-from typing import Any
+"""PostgreSQL + Chroma long-term memory facade."""
 
-DEFAULT_PATH = Path(__file__).resolve().parents[1] / "data" / "long_term_memory.jsonl"
+from memory.postgres_memory import save_interaction, search_interactions
+from memory.retrieval import store_memory_vector
 
 
 class LongTermMemory:
-    """JSONL-backed case memory used for later retrieval."""
+    def store(self, session_id: str, content: str, kind: str = "assessment") -> None:
+        row = save_interaction(session_id, content, kind=kind)
+        store_memory_vector(
+            f"{session_id}-{row['id']}",
+            content,
+            {"session_id": session_id, "kind": kind},
+        )
 
-    def __init__(self, path: Path | None = None):
-        self.path = path or DEFAULT_PATH
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-
-    def store(self, record: dict[str, Any]) -> None:
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record) + "\n")
-
-    def load(self) -> list[dict[str, Any]]:
-        if not self.path.exists():
-            return []
-        records = []
-        with self.path.open(encoding="utf-8") as handle:
-            for line in handle:
-                line = line.strip()
-                if line:
-                    records.append(json.loads(line))
-        return records
+    def load(self, session_id: str) -> list[dict]:
+        return search_interactions(session_id)

@@ -1,5 +1,4 @@
 # Construction Overlay
 
-- Require stronger collateral and completion-risk review
-- Progress-payment structures preferred over bullet repayment
-- Market notes: cyclical demand; stress LTV by +10%
+- Cyclical income: stress FOIR by +5 percentage points
+- Prefer secured structures where possible

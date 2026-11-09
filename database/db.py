@@ -1,84 +1,72 @@
 from __future__ import annotations
 
-import csv
-import sqlite3
-from functools import lru_cache
-from pathlib import Path
+from collections.abc import Iterator
+from contextlib import contextmanager
 
-ROOT = Path(__file__).resolve().parents[1]
-DB_PATH = ROOT / "data" / "credit_risk.db"
-SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session, sessionmaker
 
+from core.config import ROOT, get_settings
+from database.models import Base
 
-def get_connection() -> sqlite3.Connection:
-    init_db()
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+_engine: Engine | None = None
+_SessionFactory: sessionmaker[Session] | None = None
 
 
-@lru_cache(maxsize=1)
+def get_engine() -> Engine:
+    global _engine
+    if _engine is None:
+        settings = get_settings()
+        connect_args = {}
+        url = settings.database_url
+        if url.startswith("sqlite"):
+            (ROOT / "data").mkdir(parents=True, exist_ok=True)
+            connect_args = {"check_same_thread": False}
+        _engine = create_engine(url, future=True, connect_args=connect_args)
+    return _engine
+
+
+def get_session_factory() -> sessionmaker[Session]:
+    global _SessionFactory
+    if _SessionFactory is None:
+        _SessionFactory = sessionmaker(bind=get_engine(), expire_on_commit=False)
+    return _SessionFactory
+
+
+@contextmanager
+def session_scope() -> Iterator[Session]:
+    factory = get_session_factory()
+    session = factory()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 def init_db() -> None:
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
-    _load_csv(
-        conn,
-        "borrowers",
-        ROOT / "data" / "borrowers.csv",
-        [
-            "borrower_id",
-            "name",
-            "segment",
-            "industry",
-            "annual_income",
-            "existing_debt",
-            "collateral_value",
-            "credit_score",
-            "prior_defaults",
-        ],
-    )
-    _load_csv(
-        conn,
-        "loan_products",
-        ROOT / "data" / "loan_products.csv",
-        ["product_id", "name", "amount", "term_months", "rate", "product_type"],
-    )
-    conn.commit()
-    conn.close()
+    engine = get_engine()
+    Base.metadata.create_all(engine)
+    from database.seed import seed_if_empty
+
+    seed_if_empty()
 
 
-def _load_csv(conn: sqlite3.Connection, table: str, path: Path, columns: list[str]) -> None:
-    if not path.exists():
-        return
-    count = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
-    if count:
-        return
-    with path.open(encoding="utf-8", newline="") as handle:
-        reader = csv.DictReader(handle)
-        rows = [tuple(row[col] for col in columns) for row in reader]
-    placeholders = ", ".join("?" for _ in columns)
-    col_sql = ", ".join(columns)
-    conn.executemany(
-        f"INSERT INTO {table} ({col_sql}) VALUES ({placeholders})",
-        rows,
-    )
-
-
-def save_assessment(
-    borrower_id: str,
-    product_id: str,
-    risk_score: float | None,
-    recommendation: str | None,
-    rationale: str | None,
-) -> None:
-    conn = get_connection()
-    conn.execute(
-        """
-        INSERT INTO assessments (borrower_id, product_id, risk_score, recommendation, rationale)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (borrower_id, product_id, risk_score, recommendation, rationale),
-    )
-    conn.commit()
-    conn.close()
+def run_select(sql: str) -> list[dict]:
+    """Read-only SQL used by the analyst SQL tool."""
+    stripped = sql.strip().rstrip(";")
+    lowered = stripped.lower()
+    if not lowered.startswith("select"):
+        raise ValueError("Only SELECT queries are allowed")
+    forbidden = (" insert ", " update ", " delete ", " drop ", " alter ", " pragma ")
+    padded = f" {lowered} "
+    if any(token in padded for token in forbidden):
+        raise ValueError("Query contains a forbidden keyword")
+    init_db()
+    with get_engine().connect() as conn:
+        rows = conn.execute(text(stripped)).mappings().all()
+    return [dict(row) for row in rows]

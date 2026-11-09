@@ -1,27 +1,41 @@
-from tools.database_tools import get_borrower, get_loan_product
-from tools.research_tools import search_credit_policy, search_market_notes
+from tools.runtime import invoke
 
 
 def research_node(state: dict) -> dict:
-    borrower_id = state.get("borrower_id", "")
-    product_id = state.get("product_id", "")
-    borrower = get_borrower(borrower_id)
-    product = get_loan_product(product_id)
-    policy = search_credit_policy(borrower.get("segment", "consumer") if borrower else "consumer")
-    market = search_market_notes(borrower.get("industry", "general") if borrower else "general")
+    applicant = state.get("applicant") or {}
+    product_type = applicant.get("product_type") or "personal"
+    amount = float(applicant.get("loan_amount") or 0)
+    tenure = int(applicant.get("tenure_months") or 48)
+    score = int(applicant.get("credit_score") or 0)
+    query = (
+        f"India {product_type} loan eligibility credit score {score} "
+        f"amount {amount} tenure {tenure} months FOIR criteria"
+    )
+
+    products = invoke(
+        "loan_product_search",
+        product_type=product_type,
+        amount=amount,
+        tenure_months=tenure,
+        credit_score=score,
+    )
+    policy = invoke("credit_policy_retriever", query=product_type)
+    documents = invoke("document_retriever", query=query)
+    web = invoke("web_search", query=query)
 
     research = {
-        "borrower": borrower,
-        "product": product,
+        "products": products,
         "policy_hits": policy,
-        "market_notes": market,
+        "documents": documents,
+        "web": web,
+        "query": query,
     }
     return {
         "research": research,
         "messages": [
             {
                 "role": "assistant",
-                "content": f"Research complete for borrower {borrower_id}.",
+                "content": f"Research: found {len(products)} products and {len(policy)} policy excerpts.",
             }
         ],
     }

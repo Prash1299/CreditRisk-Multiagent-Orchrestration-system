@@ -25,7 +25,7 @@ class RiskModel:
     def load(cls) -> RiskModel:
         if MODEL_PATH.exists():
             return cls(joblib.load(MODEL_PATH))
-        return cls(_untrained_pipeline())
+        return cls(None)
 
     def save(self) -> None:
         MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -35,14 +35,13 @@ class RiskModel:
         row = [
             [
                 float(features.get("credit_score", 0)),
-                float(features.get("dti", 0)),
-                float(features.get("ltv", 0)),
+                float(features.get("foir", 0)),
+                float(features.get("loan_to_income", 0)),
                 float(features.get("defaults", 0)),
             ]
         ]
-        if self.pipeline is None:
-            pd = _heuristic_pd(features)
-        else:
+        pd = _heuristic_pd(features)
+        if self.pipeline is not None:
             try:
                 pd = float(self.pipeline.predict_proba(row)[0][1])
             except Exception:
@@ -56,19 +55,15 @@ class RiskModel:
         return RiskPrediction(probability_of_default=round(pd, 4), risk_band=band)
 
 
-def _untrained_pipeline() -> Pipeline:
-    return Pipeline(
-        [
-            ("scaler", StandardScaler()),
-            ("clf", LogisticRegression(max_iter=200)),
-        ]
-    )
-
-
 def _heuristic_pd(features: dict) -> float:
-    credit = float(features.get("credit_score", 650))
-    dti = float(features.get("dti", 0.35))
-    ltv = float(features.get("ltv", 0.8))
-    defaults = float(features.get("defaults", 0))
-    raw = 0.35 * (1 - min(credit, 850) / 850) + 0.3 * dti + 0.25 * ltv + 0.1 * min(defaults, 3)
-    return max(0.01, min(raw, 0.95))
+    credit = float(features.get("credit_score", 650) or 650)
+    foir = float(features.get("foir", 0.4) or 0.4)
+    lti = float(features.get("loan_to_income", 0.5) or 0.5)
+    defaults = float(features.get("defaults", 0) or 0)
+    raw = (
+        0.40 * (1 - min(credit, 850) / 850)
+        + 0.30 * foir
+        + 0.20 * min(lti, 1.5) / 1.5
+        + 0.10 * min(defaults, 3)
+    )
+    return max(0.02, min(raw, 0.92))

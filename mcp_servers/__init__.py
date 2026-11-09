@@ -1,1 +1,1 @@
-"""MCP servers that wrap research, finance, and database tools."""
+"""MCP servers exposing research, analyst, and memory tools."""
