@@ -1,0 +1,6 @@
+borrower_id,name,segment,industry,annual_income,existing_debt,collateral_value,credit_score,prior_defaults
+B001,Amina Khan,consumer,retail,92000,18000,240000,742,0
+B002,Luis Ortega,consumer,construction,64000,31000,160000,661,1
+B003,Priya Shah,small_business,retail,145000,52000,380000,701,0
+B004,Noah Bennett,consumer,general,48000,22000,90000,598,2
+B005,Mei Chen,small_business,construction,210000,88000,510000,724,0

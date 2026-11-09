@@ -1,0 +1,5 @@
+product_id,name,amount,term_months,rate,product_type
+P100,Home Mortgage 30Y,320000,360,0.065,mortgage
+P200,Personal Loan,18000,48,0.119,unsecured
+P300,Working Capital Line,75000,24,0.092,sme
+P400,Auto Loan,28000,60,0.071,secured

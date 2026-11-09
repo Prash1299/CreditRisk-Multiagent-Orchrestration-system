@@ -1,0 +1,20 @@
+[
+  {
+    "id": "approve-consumer",
+    "borrower_id": "B001",
+    "product_id": "P200",
+    "expected_recommendation": ["approve", "refer"]
+  },
+  {
+    "id": "refer-or-decline-weak-credit",
+    "borrower_id": "B004",
+    "product_id": "P200",
+    "expected_recommendation": ["refer", "decline"]
+  },
+  {
+    "id": "sme-working-capital",
+    "borrower_id": "B003",
+    "product_id": "P300",
+    "expected_recommendation": ["approve", "refer"]
+  }
+]
