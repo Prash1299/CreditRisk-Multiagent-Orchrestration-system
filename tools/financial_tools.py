@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 def monthly_emi(principal: float, annual_rate: float, tenure_months: int) -> float:
     if principal <= 0 or tenure_months <= 0:
         return 0.0
